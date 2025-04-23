@@ -63,6 +63,40 @@ Chỗ nào vướng mắc cứ share lên nhóm để cùng tháo gỡ.
 ![{FCDE1BA3-1BFB-41C9-AE96-C647789F7761}](https://github.com/user-attachments/assets/70f1aca6-a8bb-4cfe-b412-3c059ea67256)  
 ![{E99B131D-8FFF-4990-9655-F2D2CF905220}](https://github.com/user-attachments/assets/d5936810-ca77-4cd1-93ce-e90d49f2a1d7)  
 ## Sau khi đã liên kết các khóa ngoại ta được sơ đồ liên kết thực thể như sau:  
+
 ![{8393E79A-85E3-4D56-BAF1-C5CEC21148F4}](https://github.com/user-attachments/assets/95e6e925-868b-43d7-8e5b-57af897c5cb5)  
 # Tạo 1 trigger cho bảng ChiTietDonHang để tính tổng tiền khi thêm hoặc cập nhật chi tiết đơn hàng:  
-![{184CED3A-18A0-469D-9D32-7E516B525EDB}](https://github.com/user-attachments/assets/8cb37934-c3f8-4e5a-b196-7dd426622ae7)
+![{184CED3A-18A0-469D-9D32-7E516B525EDB}](https://github.com/user-attachments/assets/8cb37934-c3f8-4e5a-b196-7dd426622ae7)  
+chạy dòng lệnh dưới để sinh 1 dòng mới với MaDonHang
+``` 
+INSERT INTO DonHang (MaKH, NgayDat, TongTien, TrangThai)
+VALUES (1, GETDATE(), 0, N'Chờ thanh toán');
+```  
+Biến @MaDonHangMoi giờ chứa mã đơn hàng mới vừa thêm
+```
+DECLARE @MaDonHangMoi INT;
+SET @MaDonHangMoi = SCOPE_IDENTITY();
+```
+Thêm 2 chi tiết đơn hàng cho 
+```
+INSERT INTO ChiTietDonHang (MaDonHang, MaSach, SoLuong, DonGia, ThanhTien)
+VALUES 
+(@MaDonHangMoi, 1, 2, 50000, 100000),
+(@MaDonHangMoi, 2, 1, 75000, 75000);
+```
+Sau đó chạy dòng lệnh dưới để tính tổng đơn hàng và ra được kết quả như ảnh bên dưới  
+```
+AFTER INSERT, UPDATE, DELETE
+UPDATE DonHang
+SET TongTien = (
+  SELECT ISNULL(SUM(ThanhTien), 0)
+  FROM ChiTietDonHang
+  WHERE ChiTietDonHang.MaDonHang = DonHang.MaDonHang
+)
+WHERE DonHang.MaDonHang IN (
+  SELECT MaDonHang FROM inserted
+  UNION
+  SELECT MaDonHang FROM deleted
+);
+```  
+![{15741CDF-EAAC-4821-A556-5FA79F8A054A}](https://github.com/user-attachments/assets/bd2dc779-5447-49c3-954c-cefcb7c94278)
